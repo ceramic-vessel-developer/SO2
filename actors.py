@@ -3,7 +3,7 @@ import time
 import random
 
 
-class Worm():
+class Worm:
     position: (int, int)
     fatness: int
 
@@ -36,12 +36,13 @@ class Worm():
 
 
 
-class Bird():
+class Bird:
     position: (int, int)
     hp: int
 
     def __init__(self, position: (int, int)):
         self.position = position
+        self.alive = True
         self.hp = 50
 
     def __str__(self):
@@ -63,13 +64,14 @@ class Bird():
         pass
 
 
-class Tree():
+class Tree:
     position: (int, int)
     hp: int
     fruits: int
 
     def __init__(self, position: (int, int)):
         self.position = position
+        self.alive = True
         self.hp = 100
         self.fruits = 5
 

@@ -42,6 +42,7 @@ class World:
 
     def refresh(self):
         self.map = [[" " for _ in range(self.x_size)] for _ in range(self.y_size)]
+
         for worm in list(self.worms):
             if not worm.alive:
                 self.worms[worm].join()
@@ -50,6 +51,25 @@ class World:
             x, y = worm.position
             self.map[y][x] = str(worm)
 
+        for tree in list(self.trees):
+            if not tree.alive:
+                self.trees[tree].join()
+                del self.trees[tree]
+                continue
+            x, y = tree.position
+            self.map[y][x] = str(tree)
+
+    @staticmethod
+    def adjacent_tiles(position: (int,int)):
+        return[(position[0]+1, position[1]+1),
+               (position[0], position[1]+1),
+               (position[0]+1, position[1]),
+               (position[0]-1, position[1]-1),
+               (position[0]-1, position[1]),
+               (position[0], position[1]-1),
+               (position[0]-1, position[1]+1),
+               (position[0]+1, position[1]-1),]
+
     def add_worms(self, amount: int):
         for _ in range(amount):
             temp_worm = Worm((random.randint(0, self.x_size - 1), random.randint(0, self.y_size - 1)),
@@ -57,17 +77,39 @@ class World:
             self.worms[temp_worm] = threading.Thread(target=self.worm_worker, args=(temp_worm,))
             self.worms[temp_worm].start()
 
+    def add_trees(self, amount: int):
+        for _ in range(amount):
+            temp_tree = Tree((random.randint(0, self.x_size - 1), random.randint(0, self.y_size - 1)))
+            self.trees[temp_tree] = threading.Thread(target=self.tree_worker, args=(temp_tree,))
+            self.trees[temp_tree].start()
+
     def worm_worker(self, worm):
         while worm.alive:
             time.sleep(1)
+            my_tiles = self.adjacent_tiles(worm.position)
+            tree_tiles = [x.position for x in self.trees.keys()]
+            int_tiles = list(set(my_tiles) & set(tree_tiles))
+            if len(int_tiles) > 0:
+                worm.eat()
+                continue
+            worm.reproduce()
             worm.move()
             if worm.fatness <= 0:
                 worm.alive = False
+
+    def tree_worker(self, tree):
+        while tree.alive:
+            time.sleep(5)
+            tree.fruit_create()
 
     def end(self):
         self.sim_over = True
         for worm, thread in self.worms.items():
             worm.alive = False
+            thread.join()
+
+        for tree, thread in self.trees.items():
+            tree.alive = False
             thread.join()
 
 
@@ -81,6 +123,7 @@ def keyboard_controller(world, window: curses.window):
 def run(window):
     world = World()
     world.add_worms(5)
+    world.add_trees(5)
 
     keyboard_listener = threading.Thread(target=keyboard_controller, args=(world, window))
     keyboard_listener.start()
