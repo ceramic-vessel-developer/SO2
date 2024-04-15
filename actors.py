@@ -7,16 +7,23 @@ class Worm():
     position: (int, int)
     fatness: int
 
-    def __init__(self, position: (int, int)):
+    def __init__(self, position: (int, int), x_size, y_size):
+        self.alive = True
         self.position = position
         self.fatness = 20
+        self.x_size = x_size
+        self.y_size = y_size
 
     def __str__(self):
         return '-'
 
     def move(self):
-        self.position = (self.position[0]+random.choice([-1, 0, 1]),
-                         self.position[1]+random.choice([-1, 0, 1]))
+        while True:
+            new_position = (self.position[0]+random.choice([-1, 0, 1]),
+                            self.position[1]+random.choice([-1, 0, 1]))
+            if 0 <= new_position[0] < self.x_size and 0 <= new_position[1] < self.y_size:
+                break
+        self.position = new_position
         self.fatness -= 1
         return self.position
 
@@ -25,6 +32,8 @@ class Worm():
 
     def reproduce(self):
         pass
+
+
 
 
 class Bird():
