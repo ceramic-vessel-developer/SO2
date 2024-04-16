@@ -40,17 +40,23 @@ class Bird:
     position: (int, int)
     hp: int
 
-    def __init__(self, position: (int, int)):
+    def __init__(self, position: (int, int), x_size, y_size):
         self.position = position
         self.alive = True
         self.hp = 50
+        self.x_size = x_size
+        self.y_size = y_size
 
     def __str__(self):
         return 'B'
 
     def move(self):
-        self.position = (self.position[0]+random.choice([-1, 0, 1]),
-                         self.position[1]+random.choice([-1, 0, 1]))
+        while True:
+            new_position = (self.position[0]+random.choice([-2, -1, 0, 1, 2]),
+                            self.position[1]+random.choice([-2, -1, 0, 1, 2]))
+            if 0 <= new_position[0] < self.x_size and 0 <= new_position[1] < self.y_size:
+                break
+        self.position = new_position
         self.hp -= 1
         return self.position
 
