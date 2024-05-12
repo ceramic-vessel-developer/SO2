@@ -25,7 +25,7 @@ class World:
         self.trees = {}
         self.worms = {}
         self.birds = {}
-
+        self.lock_map = threading.Lock()
         self.map = [[" " for _ in range(self.x_size)] for _ in range(self.y_size)]
 
     def __str__(self):
@@ -42,6 +42,10 @@ class World:
 
     def refresh(self):
         self.map = [[" " for _ in range(self.x_size)] for _ in range(self.y_size)]
+
+        if not self.birds and not self.worms:
+            self.sim_over = True
+            return
 
         for worm in list(self.worms):
             if not worm.alive:
@@ -98,23 +102,46 @@ class World:
             self.birds[temp_bird] = threading.Thread(target=self.bird_worker, args=(temp_bird,))
             self.birds[temp_bird].start()
 
+    def new_worm(self, position: (int, int)):
+        with self.lock_map:
+            temp_worm = Worm(position, self.x_size, self.y_size)
+            self.worms[temp_worm] = threading.Thread(target=self.worm_worker, args=(temp_worm,))
+            self.worms[temp_worm].start()
+
+    def new_tree(self, position: (int, int)):
+        with self.lock_map:
+            temp_tree = Tree(position)
+            self.trees[temp_tree] = threading.Thread(target=self.tree_worker, args=(temp_tree,))
+            self.trees[temp_tree].start()
+
+    def new_bird(self, position: (int, int)):
+        with self.lock_map:
+            temp_bird = Bird(position, self.x_size, self.y_size)
+            self.birds[temp_bird] = threading.Thread(target=self.bird_worker, args=(temp_bird,))
+            self.birds[temp_bird].start()
+
     def worm_worker(self, worm):
         while worm.alive:
-            time.sleep(1)
+            time.sleep(0.2)
             my_tiles = self.adjacent_tiles(worm.position)
-            tree_tiles = [x.position for x in self.trees.keys()]
-            int_tiles = list(set(my_tiles) & set(tree_tiles))
-            if len(int_tiles) > 0:
-                worm.eat()
+            adjtrees = list(filter(lambda x: x.position in my_tiles, self.trees.keys()))
+            if len(adjtrees) > 0:
+                worm.eat(adjtrees[0])
+                if worm.fatness <= 0:
+                    worm.alive = False
                 continue
-            worm.reproduce()
-            worm.move()
+            else:
+                worm.move()
+            if worm.reproduce():
+                x, y = worm.position
+                self.new_worm((x, y))
             if worm.fatness <= 0:
                 worm.alive = False
 
     def tree_worker(self, tree):
         while tree.alive:
-            time.sleep(5)
+            time.sleep(1)
+            tree.eat()
             tree.fruit_create()
 
             if tree.hp <= 0:
@@ -122,20 +149,35 @@ class World:
 
     def bird_worker(self, bird):
         while bird.alive:
-            time.sleep(1)
+            time.sleep(0.5)
             my_tiles = self.adjacent_tiles(bird.position)
-            tree_tiles = [x.position for x in self.trees.keys()]
-            worm_tiles = [x.position for x in self.worms.keys()]
-            int_tiles = list(set(my_tiles) & set(worm_tiles))
-            if len(int_tiles) > 0:
-                bird.eat()
+            adjtrees = list(filter(lambda x: x.position in my_tiles, self.trees.keys()))
+            adjworms = list(filter(lambda x: x.position in my_tiles, self.worms.keys()))
+            adjbirds = list(filter(lambda x: x.position in my_tiles, self.birds.keys()))
+            if len(adjworms) > 0:
+                if not adjworms[0].lock.locked() and bird.hp < 70:
+                    bird.eat(adjworms[0])
+                    if bird.hp <= 0:
+                        bird.alive = False
+                    continue
+            if len(adjtrees) > 0:
+                if adjtrees[0].fruits > 0 and not adjtrees[0].lock.locked() and bird.hp < 70:
+                    bird.eat_f(adjtrees[0])
+                else:
+                    bird.move()
+                    if bird.hp <= 0:
+                        bird.alive = False
+                    continue
+            if len(adjbirds) > 0:
+                if bird.reproduce(adjbirds[0]):
+                    self.new_bird(bird.position)
+                bird.move()
+                if bird.hp <= 0:
+                    bird.alive = False
                 continue
-            int_tiles = list(set(my_tiles) & set(tree_tiles))
-            if len(int_tiles) > 0:
-                bird.eat()
-                continue
-            bird.reproduce()
             bird.move()
+            if bird.populate():
+                self.new_tree(bird.position)
             if bird.hp <= 0:
                 bird.alive = False
 
@@ -143,29 +185,32 @@ class World:
         self.sim_over = True
         for worm, thread in self.worms.items():
             worm.alive = False
+            del worm
             thread.join()
 
         for tree, thread in self.trees.items():
             tree.alive = False
+            del tree
             thread.join()
 
         for bird, thread in self.birds.items():
             bird.alive = False
+            del bird
             thread.join()
 
 
 def keyboard_controller(world, window: curses.window):
     while not world.sim_over:
         char = window.getch()
-        if char == curses.KEY_F1:
+        if char == curses.KEY_UP:
             world.end()
 
 
 def run(window):
-    world = World()
-    world.add_worms(5)
-    world.add_trees(5)
-    world.add_birds(5)
+    world = World(50, 40)
+    world.add_worms(1)
+    world.add_trees(2)
+    world.add_birds(1)
 
     keyboard_listener = threading.Thread(target=keyboard_controller, args=(world, window))
     keyboard_listener.start()
@@ -174,11 +219,13 @@ def run(window):
         window.clear()
         window.insstr(0, 0, str(world))
         window.refresh()
-        time.sleep(0.2)
+        time.sleep(0.1)
 
         world.refresh()
 
     keyboard_listener.join()
+    world.end()
+    return
 
 
 if __name__ == "__main__":
