@@ -213,10 +213,10 @@ def keyboard_controller(world, window: curses.window):
 
 
 def run(window):
-    world = World(50, 40)
-    world.add_worms(20)
-    world.add_trees(50)
-    world.add_birds(30)
+    world = World(180, 40)
+    world.add_worms(1000)
+    world.add_trees(500)
+    world.add_birds(50)
     # collect_data = threading.Thread(target=world.plot.update, args=(world,))
     # collect_data.start()
 

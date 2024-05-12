@@ -92,7 +92,7 @@ class Bird:
         return self.position
 
     def eat(self, w: Worm):
-        if self.hp < 70:
+        if self.hp < 70 and w.fatness > 0:
             with w.lock:
                 am = random.randint(0, w.fatness)
                 w.fatness -= am
