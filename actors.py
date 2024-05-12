@@ -74,6 +74,7 @@ class Bird:
         self.x_size = x_size
         self.y_size = y_size
         self.seeds = False
+        self.lock = threading.Lock()
 
     def __str__(self):
         return 'B'
@@ -85,7 +86,7 @@ class Bird:
             if 0 <= new_position[0] < self.x_size and 0 <= new_position[1] < self.y_size:
                 break
         self.position = new_position
-        self.hp -= 5
+        self.hp -= 2
         if self.reproducable > 0:
             self.reproducable -= 1
         return self.position
@@ -93,7 +94,7 @@ class Bird:
     def eat(self, w: Worm):
         if self.hp < 70:
             with w.lock:
-                am = random.randint(1, w.fatness)
+                am = random.randint(0, w.fatness)
                 w.fatness -= am
                 self.hp += am
 

@@ -2,11 +2,10 @@ import threading
 import time
 import random
 import curses
-# import mathplotlib
+# from plotting import Plot as Plt
 from actors import Worm as Worm
 from actors import Bird as Bird
 from actors import Tree as Tree
-from enum import Enum
 
 
 # TREE_STATE = Enum('TREE', 'WORM', 'BIRD', 'WORM_BIRD')
@@ -22,6 +21,7 @@ class World:
         self.x_size = x_size
         self.y_size = y_size
         self.sim_over = False
+        # self.plot = Plt()
         self.trees = {}
         self.worms = {}
         self.birds = {}
@@ -183,6 +183,10 @@ class World:
 
     def end(self):
         self.sim_over = True
+        for worm, thread in self.worms.items(): thread.join()
+        for tree, thread in self.trees.items(): thread.join()
+        for bird, thread in self.birds.items(): thread.join()
+
         for worm, thread in self.worms.items():
             worm.alive = False
             del worm
@@ -204,13 +208,17 @@ def keyboard_controller(world, window: curses.window):
         char = window.getch()
         if char == curses.KEY_UP:
             world.end()
+        # if char == curses.KEY_DOWN:
+          #  world.plot.toggle_show()
 
 
 def run(window):
     world = World(50, 40)
-    world.add_worms(1)
-    world.add_trees(2)
-    world.add_birds(1)
+    world.add_worms(20)
+    world.add_trees(50)
+    world.add_birds(30)
+    # collect_data = threading.Thread(target=world.plot.update, args=(world,))
+    # collect_data.start()
 
     keyboard_listener = threading.Thread(target=keyboard_controller, args=(world, window))
     keyboard_listener.start()
