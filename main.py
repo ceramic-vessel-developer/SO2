@@ -1,7 +1,10 @@
+import sys
 import threading
 import time
 import random
 import curses
+import traceback
+
 # from plotting import Plot as Plt
 from actors import Worm as Worm
 from actors import Bird as Bird
@@ -103,22 +106,19 @@ class World:
             self.birds[temp_bird].start()
 
     def new_worm(self, position: (int, int)):
-        with self.lock_map:
-            temp_worm = Worm(position, self.x_size, self.y_size)
-            self.worms[temp_worm] = threading.Thread(target=self.worm_worker, args=(temp_worm,))
-            self.worms[temp_worm].start()
+        temp_worm = Worm(position, self.x_size, self.y_size)
+        self.worms[temp_worm] = threading.Thread(target=self.worm_worker, args=(temp_worm,))
+        self.worms[temp_worm].start()
 
     def new_tree(self, position: (int, int)):
-        with self.lock_map:
-            temp_tree = Tree(position)
-            self.trees[temp_tree] = threading.Thread(target=self.tree_worker, args=(temp_tree,))
-            self.trees[temp_tree].start()
+        temp_tree = Tree(position)
+        self.trees[temp_tree] = threading.Thread(target=self.tree_worker, args=(temp_tree,))
+        self.trees[temp_tree].start()
 
     def new_bird(self, position: (int, int)):
-        with self.lock_map:
-            temp_bird = Bird(position, self.x_size, self.y_size)
-            self.birds[temp_bird] = threading.Thread(target=self.bird_worker, args=(temp_bird,))
-            self.birds[temp_bird].start()
+        temp_bird = Bird(position, self.x_size, self.y_size)
+        self.birds[temp_bird] = threading.Thread(target=self.bird_worker, args=(temp_bird,))
+        self.birds[temp_bird].start()
 
     def worm_worker(self, worm):
         while worm.alive:
@@ -134,7 +134,9 @@ class World:
                 worm.move()
             if worm.reproduce():
                 x, y = worm.position
-                self.new_worm((x, y))
+                with self.lock_map:
+                    if worm.alive:
+                        self.new_worm((x, y))
             if worm.fatness <= 0:
                 worm.alive = False
 
@@ -170,37 +172,54 @@ class World:
                     continue
             if len(adjbirds) > 0:
                 if bird.reproduce(adjbirds[0]):
-                    self.new_bird(bird.position)
+                    with self.lock_map:
+                        if bird.alive:
+                            self.new_bird(bird.position)
                 bird.move()
                 if bird.hp <= 0:
                     bird.alive = False
                 continue
             bird.move()
             if bird.populate():
-                self.new_tree(bird.position)
+                with self.lock_map:
+                    if bird.alive:
+                        self.new_tree(bird.position)
             if bird.hp <= 0:
                 bird.alive = False
 
     def end(self):
-        self.sim_over = True
-        for worm, thread in self.worms.items(): thread.join()
-        for tree, thread in self.trees.items(): thread.join()
-        for bird, thread in self.birds.items(): thread.join()
+        # self.sim_over = True
+        with self.lock_map:
+            self.sim_over = True
+            for worm, thread in self.worms.items():
+                worm.alive = False
+                # thread.join()
+                # del worm
 
+            for tree, thread in self.trees.items():
+                tree.alive = False
+                # thread.join()
+                # del tree
+
+            for bird, thread in self.birds.items():
+                bird.alive = False
+                # thread.join()
+                # del bird
+
+    def clear(self):
         for worm, thread in self.worms.items():
-            worm.alive = False
-            del worm
+            # if worm.lock.locked():
+            #     worm.lock.release()
             thread.join()
-
         for tree, thread in self.trees.items():
-            tree.alive = False
-            del tree
+            # if tree.lock.locked():
+            #     tree.lock.release()
+            thread.join()
+        for bird, thread in self.birds.items():
+            # if bird.lock.locked():
+            #     bird.lock.release()
             thread.join()
 
-        for bird, thread in self.birds.items():
-            bird.alive = False
-            del bird
-            thread.join()
 
 
 def keyboard_controller(world, window: curses.window):
@@ -213,28 +232,38 @@ def keyboard_controller(world, window: curses.window):
 
 
 def run(window):
-    world = World(180, 40)
-    world.add_worms(1000)
-    world.add_trees(500)
-    world.add_birds(50)
-    # collect_data = threading.Thread(target=world.plot.update, args=(world,))
-    # collect_data.start()
+    try:
+        world = World(180, 40)
+        world.add_worms(1000)
+        world.add_trees(500)
+        world.add_birds(50)
+        # collect_data = threading.Thread(target=world.plot.update, args=(world,))
+        # collect_data.start()
 
-    keyboard_listener = threading.Thread(target=keyboard_controller, args=(world, window))
-    keyboard_listener.start()
+        keyboard_listener = threading.Thread(target=keyboard_controller, args=(world, window))
+        keyboard_listener.start()
 
-    while not world.sim_over:
-        window.clear()
-        window.insstr(0, 0, str(world))
-        window.refresh()
-        time.sleep(0.1)
+        while not world.sim_over:
+            window.clear()
+            window.insstr(0, 0, str(world))
+            window.refresh()
+            time.sleep(0.1)
 
-        world.refresh()
+            world.refresh()
 
-    keyboard_listener.join()
-    world.end()
-    return
+        keyboard_listener.join()
+        world.clear()
+        # world.end()
+        return
+    except Exception as e:
+        with open("log.txt", 'a') as file:
+            file.write(f"{str(''.join(traceback.format_tb(e.__traceback__)))}\t{time.time()}\n")
 
 
 if __name__ == "__main__":
-    curses.wrapper(run)
+    try:
+        curses.wrapper(run)
+        sys.exit()
+    except Exception as e:
+        with open("log.txt", 'a') as file:
+            file.write(f"{str(e.__traceback__.tb_next)}\t{time.time()}\n")
