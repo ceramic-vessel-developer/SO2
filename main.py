@@ -5,26 +5,17 @@ import random
 import curses
 import traceback
 
-# from plotting import Plot as Plt
+from plotting import Plot as Plt
 from actors import Worm as Worm
 from actors import Bird as Bird
 from actors import Tree as Tree
 
 
-# TREE_STATE = Enum('TREE', 'WORM', 'BIRD', 'WORM_BIRD')
-
-
 class World:
-    # actors: [Worm, Bird, Tree]
-    # size: (int, int)
-    # screen: curses.window
-    #
-
     def __init__(self, x_size=50, y_size=30):
         self.x_size = x_size
         self.y_size = y_size
         self.sim_over = False
-        # self.plot = Plt()
         self.trees = {}
         self.worms = {}
         self.birds = {}
@@ -221,26 +212,33 @@ class World:
             thread.join()
 
 
-
 def keyboard_controller(world, window: curses.window):
     while not world.sim_over:
         char = window.getch()
         if char == curses.KEY_UP:
             world.end()
-        # if char == curses.KEY_DOWN:
-          #  world.plot.toggle_show()
+
+
+def collect(world, plot):
+    while not world.sim_over:
+        plot.get_data(world, world.worms, world.trees, world.birds)
+        time.sleep(0.15)
 
 
 def run(window):
     try:
         world = World(180, 40)
-        world.add_worms(1000)
-        world.add_trees(500)
+        plot = Plt()
+        world.add_worms(10)
+        world.add_trees(50)
         world.add_birds(50)
-        # collect_data = threading.Thread(target=world.plot.update, args=(world,))
-        # collect_data.start()
+        collect_data = threading.Thread(
+                target=collect,
+                args=(world, plot))
+        collect_data.start()
 
-        keyboard_listener = threading.Thread(target=keyboard_controller, args=(world, window))
+        keyboard_listener = threading.Thread(
+                target=keyboard_controller, args=(world, window))
         keyboard_listener.start()
 
         while not world.sim_over:
@@ -252,6 +250,8 @@ def run(window):
             world.refresh()
 
         keyboard_listener.join()
+        collect_data.join()
+        plot.toggle_show()
         world.clear()
         # world.end()
         return
