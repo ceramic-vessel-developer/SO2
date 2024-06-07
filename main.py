@@ -211,6 +211,24 @@ class World:
             #     bird.lock.release()
             thread.join()
 
+    def dune_worm(self):
+        time.sleep(2)
+        chance = random.randint(0, 100)
+        check = lambda worker: worker.position[0] in range(self.x_size/2 - rx, self.x_size + rx + 1) and \
+                        worker.position[1] in range(self.y_size/2 - ry, self.y_size+ry+1)
+        if len(self.worms) > 100 and chance > 0:
+            rx = self.x_size//4
+            ry = self.y_size//4
+            for worm in list(self.worms):
+                if check(worm):
+                    worm.alive = False
+            for tree in list(self.trees):
+                if check(tree):
+                    tree.alive = False
+            for bird in list(self.birds):
+                if check(bird):
+                    bird.alive = False
+
 
 def keyboard_controller(world, window: curses.window):
     while not world.sim_over:
@@ -229,17 +247,21 @@ def run(window):
     try:
         world = World(180, 40)
         plot = Plt()
-        world.add_worms(10)
-        world.add_trees(50)
+        world.add_worms(1000)
+        world.add_trees(100)
         world.add_birds(50)
         collect_data = threading.Thread(
                 target=collect,
                 args=(world, plot))
         collect_data.start()
-
+        
         keyboard_listener = threading.Thread(
                 target=keyboard_controller, args=(world, window))
         keyboard_listener.start()
+
+        dune = threading.Thread(
+                target=world.dune_worm)
+        dune.start()
 
         while not world.sim_over:
             window.clear()
@@ -251,6 +273,7 @@ def run(window):
 
         keyboard_listener.join()
         collect_data.join()
+        dune.join()
         plot.toggle_show()
         world.clear()
         # world.end()
