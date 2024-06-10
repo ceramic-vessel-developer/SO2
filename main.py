@@ -212,13 +212,13 @@ class World:
             thread.join()
 
     def dune_worm(self):
-        time.sleep(2)
+        time.sleep(10)
         chance = random.randint(0, 100)
-        check = lambda worker: worker.position[0] in range(self.x_size/2 - rx, self.x_size + rx + 1) and \
-                        worker.position[1] in range(self.y_size/2 - ry, self.y_size+ry+1)
-        if len(self.worms) > 100 and chance > 0:
-            rx = self.x_size//4
-            ry = self.y_size//4
+        rx = random.randint(0, self.x_size//2)
+        ry = random.randint(0, self.y_size//2)
+        check = lambda worker: worker.position[0] in range(self.x_size//2 - rx, self.x_size//2 + rx) and \
+                        worker.position[1] in range(self.y_size//2 - ry, self.y_size//2+ry)
+        if len(self.worms) > 100 and chance > 90:
             for worm in list(self.worms):
                 if check(worm):
                     worm.alive = False
@@ -228,7 +228,8 @@ class World:
             for bird in list(self.birds):
                 if check(bird):
                     bird.alive = False
-
+            for (x,y) in [(x,y) for x in range(self.x_size//2 - rx, self.x_size//2 + rx ) for y in range(self.y_size//2 - ry, self.y_size//2+ry)]:
+                self.map[y][x] = 'X'
 
 def keyboard_controller(world, window: curses.window):
     while not world.sim_over:
@@ -259,8 +260,7 @@ def run(window):
                 target=keyboard_controller, args=(world, window))
         keyboard_listener.start()
 
-        dune = threading.Thread(
-                target=world.dune_worm)
+        dune = threading.Thread(target=world.dune_worm)
         dune.start()
 
         while not world.sim_over:
