@@ -179,36 +179,23 @@ class World:
                 bird.alive = False
 
     def end(self):
-        # self.sim_over = True
         with self.lock_map:
             self.sim_over = True
             for worm, thread in self.worms.items():
                 worm.alive = False
-                # thread.join()
-                # del worm
 
             for tree, thread in self.trees.items():
                 tree.alive = False
-                # thread.join()
-                # del tree
 
             for bird, thread in self.birds.items():
                 bird.alive = False
-                # thread.join()
-                # del bird
 
     def clear(self):
         for worm, thread in self.worms.items():
-            # if worm.lock.locked():
-            #     worm.lock.release()
             thread.join()
         for tree, thread in self.trees.items():
-            # if tree.lock.locked():
-            #     tree.lock.release()
             thread.join()
         for bird, thread in self.birds.items():
-            # if bird.lock.locked():
-            #     bird.lock.release()
             thread.join()
 
     def dune_worm(self):
@@ -276,7 +263,6 @@ def run(window):
         dune.join()
         plot.toggle_show()
         world.clear()
-        # world.end()
         return
     except Exception as e:
         with open("log.txt", 'a') as file:
