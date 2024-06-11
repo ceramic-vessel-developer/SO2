@@ -36,7 +36,7 @@ które na koniec symulacji są przedstawiane na wykresie, zapisywanym w pliku pn
 Interfejs składa się z planszy ograniczonej znakami # po której poruszają się agenci reprezentowani w następujący sposób:
  Robak - *-*, Ptak - *B*, Drzewo - *T*, Czerw - *X*. Przykładowy widok interfejsu przedstawia poniższa ilustracja.
 
-[//]: # (ilustracja)
+![niedziekan](https://github.com/ceramic-vessel-developer/SO2/assets/87088118/d2028d96-e30f-405a-94c5-d4121b7ae4ba)
 
 ### Wątki
 W symulacji zostały wykorzystane następujące wątki:
@@ -47,6 +47,7 @@ W symulacji zostały wykorzystane następujące wątki:
 oraz przeprowadzający wydarzenie
 - Keyboard listener - nasłuchuje wprowadzeń użytkownika oraz odpowiednio na nie reaguje
 - Data collector - zbiera dane o liczebności poszczególnych typów agentów
+
 
 ### Sekcje krytyczne
 W symulacji zostały wykorzystane następujące sekcje krytyczne
